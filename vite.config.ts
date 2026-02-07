@@ -11,7 +11,11 @@ export default defineConfig({
   plugins: [uni()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src')
+      '@': path.resolve(__dirname, 'src'),
+      '@/components': path.resolve(__dirname, 'src/components'),
+      '@/pages': path.resolve(__dirname, 'src/pages'),
+      '@/styles': path.resolve(__dirname, 'src/styles'),
+      '@/stores': path.resolve(__dirname, 'src/stores')
     }
   },
   server: {
