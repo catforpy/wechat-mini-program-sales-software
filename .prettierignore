@@ -1,0 +1,23 @@
+# Prettier 忽略文件
+
+# 依赖
+node_modules
+.pnp
+.pnp.js
+
+# 构建输出
+dist
+dist-ssr
+unpackage
+*.local
+
+# 其他
+.DS_Store
+*.log
+.lock-wscript
+build/Release
+
+# 配置文件
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
