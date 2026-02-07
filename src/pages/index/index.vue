@@ -1,75 +1,89 @@
 <template>
   <view class="home-page">
-    <navbar title="首页" :show-back="false" />
+    <!-- 状态栏占位 -->
+    <view class="status-bar"></view>
 
     <view class="content">
-      <!-- 用户信息卡片 -->
-      <card v-if="isLoggedIn" title="用户信息" @click="handleUserCard">
-        <user-card :user="userInfo" :show-role="true" />
-      </card>
+      <view class="header">
+        <text class="title">首页</text>
+      </view>
 
-      <!-- 未登录状态 -->
-      <card v-else title="欢迎">
-        <view class="welcome">
-          <text class="welcome-text">欢迎来到销售app会都</text>
-          <x-button type="primary" @click="goToLogin">立即登录</x-button>
+      <!-- 用户信息 -->
+      <view class="user-info">
+        <text class="welcome-text">欢迎，{{ userInfo?.name || '用户' }}</text>
+        <text class="role-text">角色：{{ getRoleName(userInfo?.role) }}</text>
+        <text class="phone-text">{{ userInfo?.phone || '' }}</text>
+      </view>
+
+      <!-- 功能菜单 -->
+      <view class="menu-grid">
+        <view class="menu-item">
+          <text class="menu-icon">📋</text>
+          <text class="menu-title">订单管理</text>
         </view>
-      </card>
+        <view class="menu-item">
+          <text class="menu-icon">👥</text>
+          <text class="menu-title">客户管理</text>
+        </view>
+        <view class="menu-item">
+          <text class="menu-icon">📦</text>
+          <text class="menu-title">商品管理</text>
+        </view>
+        <view class="menu-item">
+          <text class="menu-icon">📊</text>
+          <text class="menu-title">数据统计</text>
+        </view>
+      </view>
 
-      <!-- 功能列表 -->
-      <card title="常用功能" class="mt-20">
-        <list-item
-          v-for="(item, index) in menuItems"
-          :key="index"
-          :title="item.title"
-          :icon="item.icon"
-          @click="handleMenuClick(item)"
-        />
-      </card>
+      <!-- 退出登录按钮 -->
+      <button class="logout-btn" @click="handleLogout">退出登录</button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-/**
- * 首页
- * 展示如何使用组件和 Composables
- */
-import { useAuth } from '@/composables/useAuth'
+import { ref, onMounted } from 'vue'
+import { useUserStore } from '@/stores'
 
-// 组件
-import Navbar from '@/components/business/Navbar.vue'
-import Card from '@/components/business/Card.vue'
-import UserCard from '@/components/business/UserCard.vue'
-import ListItem from '@/components/business/ListItem.vue'
-import XButton from '@/components/base/Button.vue'
+const userStore = useUserStore()
+const userInfo = ref<any>(null)
 
-// 使用 Composables
-const { isLoggedIn, userInfo } = useAuth()
-
-// 菜单项
-const menuItems = [
-  { title: '订单管理', icon: '📋', url: '/pages/order/list/index' },
-  { title: '客户管理', icon: '👥', url: '/pages/customer/list/index' },
-  { title: '商品管理', icon: '📦', url: '/pages/product/list/index' },
-  { title: '数据统计', icon: '📊', url: '/pages/statistics/index' },
-  { title: '系统设置', icon: '⚙️', url: '/pages/settings/index' }
-]
-
-// 处理菜单点击
-const handleMenuClick = (item: any) => {
-  uni.navigateTo({ url: item.url })
+// 获取角色名称
+const getRoleName = (role: string | undefined) => {
+  const roleMap: Record<string, string> = {
+    agent: '代理商',
+    salesperson: '业务员',
+    merchant: '商户'
+  }
+  return roleMap[role || ''] || '未知'
 }
 
-// 处理用户卡片点击
-const handleUserCard = () => {
-  uni.navigateTo({ url: '/pages/user/profile/index' })
+// 退出登录
+const handleLogout = () => {
+  uni.showModal({
+    title: '提示',
+    content: '确定要退出登录吗？',
+    success: async (res) => {
+      if (res.confirm) {
+        // 清除本地存储
+        uni.removeStorageSync('token')
+        uni.removeStorageSync('userInfo')
+
+        // 清除 store 状态
+        userStore.token = ''
+        userStore.userInfo = null
+
+        uni.reLaunch({ url: '/src/pages/user/login/index' })
+      }
+    }
+  })
 }
 
-// 跳转登录
-const goToLogin = () => {
-  uni.navigateTo({ url: '/pages/user/login/index' })
-}
+onMounted(() => {
+  // 从 store 获取用户信息
+  userInfo.value = userStore.userInfo
+  console.log('首页加载，用户信息:', userInfo.value)
+})
 </script>
 
 <style scoped lang="scss">
@@ -78,26 +92,95 @@ const goToLogin = () => {
 .home-page {
   min-height: 100vh;
   background-color: $bg-color;
+  display: flex;
+  flex-direction: column;
+}
+
+.status-bar {
+  height: var(--status-bar-height);
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .content {
-  padding: $spacing-md;
+  flex: 1;
+  padding: $spacing-xl;
 }
 
-.mt-20 {
-  margin-top: 20rpx;
+.header {
+  margin-bottom: $spacing-xl;
+
+  .title {
+    font-size: 48rpx;
+    font-weight: bold;
+    color: $text-color;
+  }
 }
 
-.welcome {
+.user-info {
+  background: #ffffff;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  margin-bottom: $spacing-xl;
+  box-shadow: $shadow-sm;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: $spacing-xl 0;
+  gap: $spacing-sm;
 
-  &-text {
-    font-size: $font-size-lg;
+  .welcome-text {
+    font-size: $font-size-xl;
+    font-weight: bold;
     color: $text-color;
-    margin-bottom: $spacing-lg;
   }
+
+  .role-text {
+    font-size: $font-size-base;
+    color: $primary-color;
+  }
+
+  .phone-text {
+    font-size: $font-size-sm;
+    color: $text-color-secondary;
+  }
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+
+  .menu-item {
+    background: #ffffff;
+    border-radius: $border-radius-lg;
+    padding: $spacing-xl;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-sm;
+    box-shadow: $shadow-sm;
+
+    .menu-icon {
+      font-size: 64rpx;
+    }
+
+    .menu-title {
+      font-size: $font-size-base;
+      color: $text-color;
+    }
+  }
+}
+
+.logout-btn {
+  width: 100%;
+  height: 88rpx;
+  background: #ffffff;
+  color: $danger-color;
+  font-size: $font-size-lg;
+  border-radius: $border-radius-md;
+  border: 1rpx solid $danger-color;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
