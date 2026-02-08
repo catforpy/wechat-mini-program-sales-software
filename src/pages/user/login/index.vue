@@ -115,6 +115,7 @@
               type="number"
               placeholder="请输入手机号"
               maxlength="11"
+              @input="validateMerchantLoginForm"
             />
           </view>
 
@@ -126,6 +127,7 @@
               class="input"
               type="password"
               placeholder="请输入密码"
+              @input="validateMerchantLoginForm"
             />
           </view>
 
@@ -139,6 +141,7 @@
                 type="number"
                 placeholder="请输入验证码"
                 maxlength="6"
+                @input="validateMerchantLoginForm"
               />
               <button
                 class="sms-btn"
@@ -203,6 +206,7 @@
               type="number"
               placeholder="请输入手机号"
               maxlength="11"
+              @input="validateMerchantRegisterForm"
             />
           </view>
 
@@ -215,6 +219,7 @@
                 type="number"
                 placeholder="请输入验证码"
                 maxlength="6"
+                @input="validateMerchantRegisterForm"
               />
               <button
                 class="sms-btn"

@@ -92,10 +92,97 @@
       </view>
 
       <!-- 排行榜 -->
-      <view v-if="currentTab === 1" class="ranking-placeholder">
-        <text class="placeholder-title">排行榜</text>
-        <text class="placeholder-desc">点击查看销售排行榜</text>
-        <button class="goto-btn" @click="goToRanking">前往排行榜</button>
+      <view v-if="currentTab === 1" class="ranking-content">
+        <!-- 时间选择和类型切换 -->
+        <view class="ranking-controls">
+          <view class="time-tabs">
+            <view
+              v-for="(time, index) in ['今日', '本周', '本月']"
+              :key="index"
+              :class="['time-tab', { active: rankingTimeIndex === index }]"
+              @click="rankingTimeIndex = index; loadRankingData()"
+            >
+              {{ time }}
+            </view>
+          </view>
+        </view>
+
+        <!-- 统计卡片 -->
+        <view class="stats-cards">
+          <view class="stat-card">
+            <text class="stat-value">¥12.8万</text>
+            <text class="stat-label">总销售额</text>
+          </view>
+          <view class="stat-card">
+            <text class="stat-value">156</text>
+            <text class="stat-label">销售单数</text>
+          </view>
+          <view class="stat-card">
+            <text class="stat-value">89</text>
+            <text class="stat-label">商户数量</text>
+          </view>
+        </view>
+
+        <!-- 排行榜类型选择 -->
+        <view class="ranking-type-selector">
+          <view
+            :class="['type-item', { active: rankingDataType === 'salesperson' }]"
+            @click="rankingDataType = 'salesperson'; loadRankingData()"
+          >
+            业务员排行
+          </view>
+          <view
+            :class="['type-item', { active: rankingDataType === 'template' }]"
+            @click="rankingDataType = 'template'; loadRankingData()"
+          >
+            模板排行
+          </view>
+        </view>
+
+        <!-- Top 3 列表 -->
+        <view class="top3-list">
+          <view
+            v-for="(item, index) in rankingDataList"
+            :key="item.id"
+            class="top3-item"
+            @click="goToRankingDetail(item)"
+          >
+            <view class="rank-badge" :class="`rank-${item.rank}`">
+              <text v-if="item.rank <= 3" class="medal">{{ ['🥇', '🥈', '🥉'][item.rank - 1] }}</text>
+              <text v-else class="rank-number">{{ item.rank }}</text>
+            </view>
+
+            <!-- 业务员 -->
+            <template v-if="rankingDataType === 'salesperson'">
+              <view class="avatar-circle">
+                <text class="avatar-char">{{ item.name.charAt(0) }}</text>
+              </view>
+              <view class="item-info">
+                <text class="item-name">{{ item.name }}</text>
+                <text class="item-metrics">💰{{ formatAmount(item.salesAmount) }} 📊{{ item.salesCount }}单</text>
+              </view>
+            </template>
+
+            <!-- 模板 -->
+            <template v-else>
+              <image class="template-thumb" :src="item.icon" mode="aspectFill" />
+              <view class="item-info">
+                <text class="item-name">{{ item.name }}</text>
+                <text class="item-category">{{ item.category }}</text>
+                <text class="item-metrics">💰{{ formatAmount(item.salesAmount) }} 📊{{ item.salesCount }}单</text>
+              </view>
+            </template>
+
+            <view class="trend-indicator" :class="item.trend.direction">
+              <text>{{ item.trend.icon }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 查看更多 -->
+        <view class="view-more" @click="goToRanking">
+          <text class="view-more-text">查看完整排行榜 ›</text>
+        </view>
       </view>
 
       <!-- 模板中心 -->
@@ -142,6 +229,51 @@ const page = ref(1)
 
 // 通知状态
 const hasNotification = ref(true)
+
+// 排行榜数据
+const rankingTimeIndex = ref(1) // 默认本周
+const rankingDataType = ref<'salesperson' | 'template'>('salesperson')
+const rankingDataList = ref<any[]>([])
+
+// 排行榜模拟数据
+const salespersonRankingData = [
+  { id: 1, rank: 1, name: '小张', salesAmount: 128000, salesCount: 15, trend: { direction: 'up', icon: '↑' } },
+  { id: 2, rank: 2, name: '小李', salesAmount: 96000, salesCount: 12, trend: { direction: 'down', icon: '↓' } },
+  { id: 3, rank: 3, name: '小孙', salesAmount: 85000, salesCount: 10, trend: { direction: 'up', icon: '↑' } }
+]
+
+const templateRankingData = [
+  {
+    id: 1,
+    rank: 1,
+    name: '在线培训小程序',
+    icon: 'https://picsum.photos/100/100?random=1',
+    category: '教育培训类',
+    salesAmount: 250000,
+    salesCount: 25,
+    trend: { direction: 'up', icon: '↑' }
+  },
+  {
+    id: 2,
+    rank: 2,
+    name: '电商商城模板',
+    icon: 'https://picsum.photos/100/100?random=2',
+    category: '电商类',
+    salesAmount: 180000,
+    salesCount: 20,
+    trend: { direction: 'down', icon: '↓' }
+  },
+  {
+    id: 3,
+    rank: 3,
+    name: '点餐平台',
+    icon: 'https://picsum.photos/100/100?random=3',
+    category: '点餐平台类',
+    salesAmount: 144000,
+    salesCount: 18,
+    trend: { direction: 'stable', icon: '—' }
+  }
+]
 
 // 切换横向标签页
 const handleTabChange = (index: number) => {
@@ -248,6 +380,42 @@ const showMenu = (item: any) => {
 // 前往排行榜
 const goToRanking = () => {
   uni.navigateTo({ url: '/src/pages/ranking/index' })
+}
+
+// 加载排行榜数据
+const loadRankingData = () => {
+  rankingDataList.value = rankingDataType.value === 'salesperson'
+    ? salespersonRankingData
+    : templateRankingData
+}
+
+// 前往排行榜详情
+const goToRankingDetail = (item: any) => {
+  console.log('前往排行榜详情:', item)
+  console.log('当前排行榜类型:', rankingDataType.value)
+
+  // 根据排行榜类型跳转到不同的详情页
+  if (rankingDataType.value === 'salesperson') {
+    // 业务员详情
+    console.log('跳转到业务员详情页')
+    uni.navigateTo({
+      url: `/src/pages/ranking/detail/index?type=salesperson&id=${item.id}`
+    })
+  } else {
+    // 模板详情
+    console.log('跳转到模板详情页')
+    uni.navigateTo({
+      url: `/src/pages/template/detail/index?id=${item.id}`
+    })
+  }
+}
+
+// 格式化金额
+const formatAmount = (amount: number) => {
+  if (amount >= 10000) {
+    return (amount / 10000).toFixed(1) + '万'
+  }
+  return amount.toString()
 }
 
 // 前往模板中心
@@ -430,6 +598,9 @@ const loadMore = () => {
 onMounted(() => {
   // 加载模板列表
   loadTemplates()
+
+  // 加载排行榜数据
+  loadRankingData()
 
   // 获取用户信息
   console.log('首页加载，用户信息:', userStore.userInfo)
@@ -687,6 +858,227 @@ onUnmounted(() => {
 }
 
 // 占位页
+// 排行榜内容样式
+.ranking-content {
+  padding: $spacing-md;
+}
+
+.ranking-controls {
+  margin-bottom: $spacing-md;
+}
+
+.time-tabs {
+  display: flex;
+  gap: $spacing-sm;
+  background-color: #ffffff;
+  padding: $spacing-sm;
+  border-radius: $border-radius-md;
+
+  .time-tab {
+    flex: 1;
+    text-align: center;
+    padding: $spacing-sm;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    color: $text-color-secondary;
+    transition: all 0.3s;
+
+    &.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      font-weight: bold;
+    }
+  }
+}
+
+.stats-cards {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  .stat-card {
+    flex: 1;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: $spacing-md;
+    border-radius: $border-radius-md;
+    text-align: center;
+
+    .stat-value {
+      display: block;
+      font-size: $font-size-xl;
+      font-weight: bold;
+      color: #ffffff;
+      margin-bottom: $spacing-xs;
+    }
+
+    .stat-label {
+      display: block;
+      font-size: $font-size-xs;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+}
+
+.ranking-type-selector {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  .type-item {
+    flex: 1;
+    text-align: center;
+    padding: $spacing-md;
+    background-color: #ffffff;
+    border-radius: $border-radius-md;
+    font-size: $font-size-base;
+    color: $text-color-secondary;
+    transition: all 0.3s;
+
+    &.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      font-weight: bold;
+    }
+  }
+}
+
+.top3-list {
+  background-color: #ffffff;
+  border-radius: $border-radius-md;
+  overflow: hidden;
+}
+
+.top3-item {
+  display: flex;
+  align-items: center;
+  padding: $spacing-lg;
+  border-bottom: 1rpx solid $border-color;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:active {
+    background-color: #f5f5f5;
+  }
+}
+
+.rank-badge {
+  width: 50rpx;
+  height: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+
+  &.rank-1 {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    border-radius: 50%;
+  }
+
+  &.rank-2 {
+    background: linear-gradient(135deg, #c0c0c0 0%, #e0e0e0 100%);
+    border-radius: 50%;
+  }
+
+  &.rank-3 {
+    background: linear-gradient(135deg, #cd7f32 0%, #e8a862 100%);
+    border-radius: 50%;
+  }
+
+  .medal {
+    font-size: 28rpx;
+  }
+
+  .rank-number {
+    font-size: $font-size-base;
+    font-weight: bold;
+    color: $text-color;
+  }
+}
+
+.avatar-circle {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: $spacing-md;
+
+  .avatar-char {
+    font-size: 24rpx;
+    font-weight: bold;
+    color: #ffffff;
+  }
+}
+
+.template-thumb {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: $border-radius-sm;
+  margin-right: $spacing-md;
+}
+
+.item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.item-name {
+  font-size: $font-size-base;
+  font-weight: bold;
+  color: $text-color;
+}
+
+.item-category {
+  font-size: $font-size-sm;
+  color: $primary-color;
+}
+
+.item-metrics {
+  font-size: $font-size-sm;
+  color: $text-color-secondary;
+}
+
+.trend-indicator {
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+
+  &.up {
+    background-color: rgba(76, 217, 100, 0.1);
+    color: #4cd964;
+  }
+
+  &.down {
+    background-color: rgba(255, 59, 48, 0.1);
+    color: #ff3b30;
+  }
+
+  &.stable {
+    background-color: rgba(142, 142, 147, 0.1);
+    color: #8e8e93;
+  }
+}
+
+.view-more {
+  padding: $spacing-lg;
+  text-align: center;
+
+  .view-more-text {
+    font-size: $font-size-base;
+    color: $primary-color;
+  }
+}
+
 .ranking-placeholder,
 .templates-placeholder,
 .approval-placeholder {
